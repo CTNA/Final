@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <link rel="stylesheet" href="c3.css">
+    <script src="d3-5.4.0.min.js"></script>
+    <script src="c3.min.js"></script>
+</head>
+
+<body>
+    <input type="button" value="溫度" onclick="autoChart_t()">
+    <input type="button" value="溼度" onclick="autoChart_h()">
+    <input type="button" value="狀態" onclick="relay()">
+    <div id="chart1"></div>
+    溫度:<input id="temp" type="text" readonly="readonly">
+    <div id="chart2"></div>
+    濕度:<input id="humid" type="text" readonly="readonly"><br>
+    設備狀態:<input id="state" type="text" readonly="readonly">
+
+</body>
+
+</html>
+<script>
+    var A0s;
+    var A1s;
+    var ip = "cloud.arest.io/TANK";
+    var order = [0, 0, 0];
+    var chart1;
+    var chart2;
+    //console.log(order);
+    window.onload = () => {
+        A0s = ['temperature'];
+        A1s = ["humidity"];
+        chart1 = c3.generate({
+            bindto: "#chart1",
+            data: {
+                columns: [
+                    A0s
+                ]
+            }
+        });
+        chart2 = c3.generate({
+            bindto: "#chart2",
+            data: {
+                columns: [
+                    A1s
+                ]
+            }
+        });
+    }
+    function update_temperature_Chart() {
+        console.log("update_temperature_Chart");
+
+        fetch('https://' + ip + '/temperature')
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                console.log(data);
+                document.getElementById("temp").value = data.temperature;
+                A0s = A0s.concat(data.temperature);
+                chart1.load({
+                    columns: [
+                        A0s
+                    ]
+                });
+                //update_humidity_Chart();
+            });
+    }
+    function update_humidity_Chart() {
+        console.log("update_humidity_Chart");
+
+        fetch('https://' + ip + '/humidity')
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                console.log(data);
+                document.getElementById("humid").value = data.humidity;
+                A1s = A1s.concat(data.humidity);
+                chart2.load({
+                    columns: [
+                        A1s
+                    ]
+                });
+                //update_temperature_Chart();
+            });
+    }
+    function get_relay() {
+        console.log("get_relay");
+
+        fetch("https://cloud.arest.io/TANK/relay")
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                if(data.relay){
+                    document.getElementById("state").value = "開啟";
+                }
+                else{
+                    document.getElementById("state").value = "關閉";
+                }
+                console.log(data["relay"]);
+            });
+    }
+    function autoChart_t() {
+        //  setInterval(() => {
+        //      update_temperature_Chart();
+        //  }, 3000);
+        //update_temperature_Chart();
+        order[0] = !order[0];
+    }
+    function autoChart_h() {
+        order[1] = !order[1];
+
+    }
+    function relay() {
+        order[2] = !order[2];
+    }
+
+    var inx = 0;
+    setInterval(() => {
+        var funs = [update_temperature_Chart, update_humidity_Chart, get_relay];
+        if (order[inx])
+            funs[inx]();
+        inx = ++inx % 3;
+
+    }, 5000);
+</script>
